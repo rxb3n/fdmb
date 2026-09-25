@@ -1,0 +1,126 @@
+{
+  "format": 1,
+  "name": "My Plugin Repository",
+  "description": "Example plugin repository from the Revenge plugin template.",
+  "plugins": {
+    "com.example.always-errors": {
+      "name": "Always Errors",
+      "description": "A plugin that always throws errors.",
+      "author": "Your Name",
+      "icon": "CircleErrorIcon",
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://rxb3n.github.io/fdmb/pool/com.example.always-errors@1.0.0.zip",
+          "sha256": "c6ce94e5cf205d988aa4155062d83023fb2daa68cf899dc359e82e9f2e512995",
+          "size": 548,
+          "dependencies": {
+            "revenge.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": "*"
+            }
+          }
+        }
+      }
+    },
+    "com.example.dependent": {
+      "name": "Example Dependent",
+      "description": "Depends on Example Library. Also installs the library.",
+      "author": "Your Name",
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://rxb3n.github.io/fdmb/pool/com.example.dependent@1.0.0.zip",
+          "sha256": "65d7f883175b3b5dae10f54218aea269535a9eaa62299123a9afc3505e34dee3",
+          "size": 591,
+          "dependencies": {
+            "revenge.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": "*"
+            },
+            "com.example.library": {
+              "version": ">=1 <2"
+            }
+          }
+        }
+      }
+    },
+    "com.example.js-plugin": {
+      "name": "JS Plugin",
+      "description": "A JS-only example plugin without any native code.",
+      "author": "Your Name",
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://rxb3n.github.io/fdmb/pool/com.example.js-plugin@1.0.0.zip",
+          "sha256": "643888550db907fce78118e3f6653b42efb1a840ec4c62cd9ba59cec2a86cf34",
+          "size": 561,
+          "dependencies": {
+            "revenge.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": "*"
+            }
+          }
+        }
+      }
+    },
+    "com.example.library": {
+      "name": "Example Library",
+      "description": "A plugin other plugins can depend on. See Example Dependent.",
+      "author": "Your Name",
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://rxb3n.github.io/fdmb/pool/com.example.library@1.0.0.zip",
+          "sha256": "52ac705492a777a587540e82836a1a6388c511f3509476f442ab48560b771f83",
+          "size": 590,
+          "dependencies": {
+            "revenge.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": "*"
+            }
+          }
+        }
+      }
+    },
+    "fileditch-mobile": {
+      "name": "FileditchMobile",
+      "description": "Uploads large files (up to 5GB) to Cloudflare R2 when exceeding Discord limit",
+      "author": "rxb3n",
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://rxb3n.github.io/fdmb/pool/fileditch-mobile@1.0.0.zip",
+          "sha256": "439135b81e4aa536e03430a6407eacdee41bb8b26725a7089c0e30a96d637d7f",
+          "size": 1331,
+          "dependencies": {
+            "revenge.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": "*"
+            }
+          }
+        }
+      }
+    }
+  }
+}
