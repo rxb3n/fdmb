@@ -1,6 +1,8 @@
 (function () {
     var findByProps = vendetta.metro.findByProps;
     var instead = vendetta.patcher.instead;
+    var showToast = vendetta.ui.toasts.showToast;
+    var getAssetIDByName = vendetta.ui.assets.getAssetIDByName;
 
     var DISCORD_SIZE_LIMIT = 20 * 1024 * 1024;
     var R2_SIZE_LIMIT = 5 * 1024 * 1024 * 1024;
@@ -36,17 +38,20 @@
         });
     }
 
-    function editMessageAggressive(channelId, messageId, content) {
-        return restRequest("PATCH", "/channels/" + channelId + "/messages/" + messageId, {
-            content: content
-        });
-    }
-
     function formatBytes(n) {
         if (n >= 1024 * 1024 * 1024) return (n / (1024 * 1024 * 1024)).toFixed(2) + " GB";
         if (n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + " MB";
         if (n >= 1024) return (n / 1024).toFixed(0) + " KB";
         return n + " B";
+    }
+
+    function toast(message, iconName) {
+        try {
+            var icon = iconName ? getAssetIDByName(iconName) : undefined;
+            showToast(message, icon);
+        } catch (e) {
+            console.error("[FileditchMobile] toast failed:", e);
+        }
     }
 
     function fetchUploadTicket(filename, mimeType) {
@@ -119,13 +124,9 @@
 
                     console.log("[FileditchMobile] Redirecting oversized file to R2: " + filename + " (" + size + " bytes), uri=" + uri);
 
-                    var statusMessageId = null;
+                    toast("Uploading " + filename + " (" + formatBytes(size) + ")...", "ic_upload");
 
-                    sendMessageAggressive(channelId, "\u23F3 Uploading **" + filename + "** (" + formatBytes(size) + ")...")
-                        .then(function (msg) {
-                            statusMessageId = msg && msg.id;
-                            return uploadToR2(uri, filename, mimeType);
-                        })
+                    uploadToR2(uri, filename, mimeType)
                         .then(function (publicUrl) {
                             console.log("[FileditchMobile] R2 upload success: " + publicUrl);
                             var extParts = filename.split(".");
@@ -133,19 +134,13 @@
                             var isVideo = mimeType.indexOf("video/") === 0 || !!VIDEO_EXTENSIONS[ext];
                             var finalContent = isVideo ? ("[\u2800](" + publicUrl + ")") : publicUrl;
 
-                            if (statusMessageId) {
-                                return editMessageAggressive(channelId, statusMessageId, finalContent);
-                            }
-                            return sendMessageAggressive(channelId, finalContent);
-                        })
-                        .then(function () {
-                            console.log("[FileditchMobile] Upload flow complete");
+                            return sendMessageAggressive(channelId, finalContent).then(function () {
+                                toast("Upload complete: " + filename, "Check");
+                            });
                         })
                         .catch(function (err) {
                             console.error("[FileditchMobile] Failed to upload/send large file:", err);
-                            if (statusMessageId) {
-                                editMessageAggressive(channelId, statusMessageId, "\u274C Upload of **" + filename + "** failed: " + (err && err.message)).catch(function () {});
-                            }
+                            toast("Upload failed: " + filename + " (" + (err && err.message) + ")", "ic_warning_24px");
                         });
 
                     try { file.status = "CANCELED"; } catch (e) {}
