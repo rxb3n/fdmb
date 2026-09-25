@@ -46,25 +46,41 @@
 
     return {
         onLoad: function () {
+            console.log("[FileditchMobile] onLoad called");
             var Messages = findByProps("sendMessage", "uploadFiles");
+            console.log("[FileditchMobile] Messages module found:", !!Messages);
             if (!Messages) {
                 console.error("[FileditchMobile] Could not locate Messages module");
                 return;
             }
 
+            console.log("[FileditchMobile] Messages.uploadFiles type:", typeof Messages.uploadFiles);
+
             if (typeof Messages.uploadFiles === "function") {
+                console.log("[FileditchMobile] Patching uploadFiles...");
                 patches.push(
                     instead("uploadFiles", Messages, function (args, orig) {
+                        try {
+                            var dbgFiles = Array.isArray(args[2]) ? args[2].map(function (f) {
+                                return { name: f.name || f.filename, size: f.size || f.fileSize };
+                            }) : [];
+                            console.log("[FileditchMobile] uploadFiles intercepted. channelId=" + args[0] + " files=" + JSON.stringify(dbgFiles));
+                        } catch (logErr) {
+                            console.log("[FileditchMobile] uploadFiles intercepted (log failed): " + logErr);
+                        }
+
                         var channelId = args[0];
                         var parsedMessage = args[1];
                         var files = args[2];
                         if (!Array.isArray(files) || files.length === 0) {
+                            console.log("[FileditchMobile] No files array, passing through to orig");
                             return orig.apply(null, args);
                         }
 
                         var largeFiles = files.filter(function (f) {
                             return (f.size || f.fileSize || 0) > DISCORD_SIZE_LIMIT;
                         });
+                        console.log("[FileditchMobile] largeFiles.length=" + largeFiles.length);
                         if (largeFiles.length === 0) {
                             return orig.apply(null, args);
                         }
@@ -78,6 +94,7 @@
                             chain = chain.then(function () {
                                 var fileSize = file.size || file.fileSize || 0;
                                 if (fileSize > R2_SIZE_LIMIT) {
+                                    console.log("[FileditchMobile] File exceeds R2 limit, skipping: " + fileSize);
                                     return;
                                 }
 
@@ -85,7 +102,10 @@
                                 var mimeType = file.type || file.mimeType || "application/octet-stream";
                                 var uri = file.uri || file.url;
 
+                                console.log("[FileditchMobile] Uploading to R2: " + filename + " (" + fileSize + " bytes)");
+
                                 return uploadToR2(uri, filename, mimeType).then(function (publicUrl) {
+                                    console.log("[FileditchMobile] R2 upload success: " + publicUrl);
                                     var extParts = filename.split(".");
                                     var ext = extParts.length > 1 ? extParts.pop().toLowerCase() : "";
                                     var isVideo = mimeType.indexOf("video/") === 0 || !!VIDEO_EXTENSIONS[ext];
@@ -101,11 +121,15 @@
 
                         return chain.then(function () {
                             if (normalFiles.length > 0) {
+                                console.log("[FileditchMobile] Sending " + normalFiles.length + " normal file(s) via orig");
                                 return orig(channelId, parsedMessage, normalFiles);
                             }
                         });
                     })
                 );
+                console.log("[FileditchMobile] Patch applied successfully");
+            } else {
+                console.log("[FileditchMobile] uploadFiles is not a function, patch NOT applied");
             }
         },
         onUnload: function () {
