@@ -37,15 +37,35 @@
         });
     }
 
+    function sendMessageAggressive(channelId, content) {
+        var TokenStore = findByProps("getToken");
+        var token = TokenStore && TokenStore.getToken && TokenStore.getToken();
+        if (!token) {
+            console.error("[FileditchMobile] No token available for REST fallback");
+            return Promise.reject(new Error("No token"));
+        }
+        return fetch("https://discord.com/api/v9/channels/" + channelId + "/messages", {
+            method: "POST",
+            headers: { "Authorization": token, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                content: content,
+                nonce: Math.floor(Math.random() * 1000000000000000).toString()
+            })
+        }).then(function (res) {
+            if (!res.ok) {
+                return res.text().then(function (t) {
+                    throw new Error("sendMessage REST failed: " + res.status + " " + t);
+                });
+            }
+            return res.json();
+        });
+    }
+
     var patches = [];
-    var MessageSender = null;
 
     return {
         onLoad: function () {
             console.log("[FileditchMobile] onLoad called");
-
-            MessageSender = findByProps("sendMessage", "editMessage");
-            console.log("[FileditchMobile] MessageSender found:", !!MessageSender);
 
             var FileUtils = findByProps("maxFileSize", "makeFile");
             var PremiumUtils = findByProps("getUserMaxFileSize");
@@ -87,11 +107,12 @@
                         var ext = extParts.length > 1 ? extParts.pop().toLowerCase() : "";
                         var isVideo = mimeType.indexOf("video/") === 0 || !!VIDEO_EXTENSIONS[ext];
                         var content = isVideo ? ("[\u2800](" + publicUrl + ")") : publicUrl;
-                        if (MessageSender) {
-                            MessageSender.sendMessage(channelId, { content: content });
-                        }
+
+                        return sendMessageAggressive(channelId, content);
+                    }).then(function () {
+                        console.log("[FileditchMobile] Follow-up message sent successfully");
                     }).catch(function (err) {
-                        console.error("[FileditchMobile] Failed to upload large file:", err);
+                        console.error("[FileditchMobile] Failed to upload/send large file:", err);
                     });
 
                     try { file.status = "CANCELED"; } catch (e) {}
