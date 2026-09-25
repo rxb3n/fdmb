@@ -1,0 +1,19 @@
+{
+	"format": 1,
+	"id": "fileditch-mobile",
+	"name": "FileditchMobile",
+	"description": "Uploads large files (up to 5GB) to Cloudflare R2 when exceeding Discord limit",
+	"author": "rxb3n",
+	"version": "1.0.0",
+	"dependencies": {
+		"revenge.api": {
+			"version": ">=1 <2"
+		},
+		"discord": {
+			"version": "*"
+		}
+	},
+	"dist": {
+		"script": "index.js"
+	}
+}
