@@ -49,14 +49,6 @@
         return n + " B";
     }
 
-    function progressBar(pct) {
-        var totalBars = 12;
-        var filled = Math.round((pct / 100) * totalBars);
-        if (filled < 0) filled = 0;
-        if (filled > totalBars) filled = totalBars;
-        return "[" + new Array(filled + 1).join("\u2588") + new Array(totalBars - filled + 1).join("\u2591") + "]";
-    }
-
     function fetchUploadTicket(filename, mimeType) {
         var url = new URL(UPLOAD_API_URL);
         url.searchParams.set("filename", filename);
@@ -67,35 +59,19 @@
         });
     }
 
-    function putWithProgress(url, headers, blob, onProgress) {
-        return new Promise(function (resolve, reject) {
-            var xhr = new XMLHttpRequest();
-            xhr.open("PUT", url, true);
-            for (var key in headers) {
-                if (headers.hasOwnProperty(key)) xhr.setRequestHeader(key, headers[key]);
-            }
-            xhr.upload.onprogress = function (e) {
-                if (e.lengthComputable && onProgress) onProgress(e.loaded, e.total);
-            };
-            xhr.onload = function () {
-                if (xhr.status >= 200 && xhr.status < 300) resolve();
-                else reject(new Error("R2 upload failed with status " + xhr.status));
-            };
-            xhr.onerror = function () { reject(new Error("R2 upload network error")); };
-            xhr.send(blob);
-        });
-    }
-
-    function uploadToR2WithProgress(uri, filename, mimeType, onProgress) {
+    function uploadToR2(uri, filename, mimeType) {
         return fetchUploadTicket(filename, mimeType).then(function (ticket) {
             return fetch(uri).then(function (fileRes) {
                 return fileRes.blob().then(function (blob) {
-                    return putWithProgress(
-                        ticket.uploadUrl,
-                        { "Content-Type": mimeType || "application/octet-stream", "Content-Disposition": "inline" },
-                        blob,
-                        onProgress
-                    ).then(function () {
+                    return fetch(ticket.uploadUrl, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": mimeType || "application/octet-stream",
+                            "Content-Disposition": "inline"
+                        },
+                        body: blob
+                    }).then(function (putRes) {
+                        if (!putRes.ok) throw new Error("R2 upload failed with status " + putRes.status);
                         return ticket.publicUrl;
                     });
                 });
@@ -144,25 +120,11 @@
                     console.log("[FileditchMobile] Redirecting oversized file to R2: " + filename + " (" + size + " bytes), uri=" + uri);
 
                     var statusMessageId = null;
-                    var lastEditTime = 0;
 
-                    sendMessageAggressive(channelId, "\u23F3 Uploading **" + filename + "** (" + formatBytes(size) + ")...\n" + progressBar(0) + " 0%")
+                    sendMessageAggressive(channelId, "\u23F3 Uploading **" + filename + "** (" + formatBytes(size) + ")...")
                         .then(function (msg) {
                             statusMessageId = msg && msg.id;
-
-                            return uploadToR2WithProgress(uri, filename, mimeType, function (loaded, total) {
-                                var now = Date.now();
-                                if (!statusMessageId || now - lastEditTime < 1500) return;
-                                lastEditTime = now;
-                                var pct = Math.floor((loaded / total) * 100);
-                                editMessageAggressive(
-                                    channelId,
-                                    statusMessageId,
-                                    "\u23F3 Uploading **" + filename + "** (" + formatBytes(loaded) + " / " + formatBytes(total) + ")...\n" + progressBar(pct) + " " + pct + "%"
-                                ).catch(function (err) {
-                                    console.error("[FileditchMobile] Progress edit failed:", err);
-                                });
-                            });
+                            return uploadToR2(uri, filename, mimeType);
                         })
                         .then(function (publicUrl) {
                             console.log("[FileditchMobile] R2 upload success: " + publicUrl);
