@@ -1,6 +1,6 @@
 {
-  "name": "FileditchMobile",
-  "description": "Uploads large files (up to 5GB) to Cloudflare R2 when exceeding Discord limit",
+  "name": "BigUpload",
+  "description": "upload that big file NYEOW",
   "authors": [
     {
       "name": "rxb3n",
